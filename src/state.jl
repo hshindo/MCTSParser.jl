@@ -1,17 +1,26 @@
+mutable struct Node
+    state
+    actions::Vector
+    parent
+end
+
+isend(st::State) = isempty(st.actions)
+reward(st::State) = 1
+
 struct Action
     N::Int
     W::Float64
     Q::Float64
     P::Float64
-end
-
-mutable struct State
-    actions::Vector{Action}
-    children::Vector{State}
-    parent
+    node::Node
 end
 
 function move(st::State)
+    isend(st) && return reward(st)
+    if !isvisit(st)
+        
+    end
+
     maxi = 0
     maxN = 0.0
     for i = 1:length(st.actions)

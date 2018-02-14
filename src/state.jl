@@ -11,12 +11,6 @@ mutable struct State
     parent
 end
 
-function decode()
-    st = State()
-    while true
-    end
-end
-
 function move(st::State)
     maxi = 0
     maxN = 0.0

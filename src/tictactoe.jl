@@ -1,23 +1,31 @@
 export TicTacToe
 
-const BLACK = Int8(1)
-const WHITE = Int8(2)
+struct TicTacToeGame
+end
+
+const WHITE = Int8(1)
+const BLACK = Int8(2)
 const BLANK = Int8(3)
 
 mutable struct TicTacToe
     player::Int
     board::Vector{Int8}
+    count::Int
 end
-TicTacToe(player::Int) = TicTacToe(player, fill(BLANK,9))
+TicTacToe() = TicTacToe(WHITE, fill(BLANK,9), 0)
+
+Base.isequal(x::TicTacToe, y::TicTacToe) = isequal(x.board, y.board)
+Base.hash(x::TicTacToe) = hash(x.board)
 
 function Base.string(ttt::TicTacToe)
     s = map(ttt.board) do i
-        i == 1 && return "○"
-        i == 2 && return "×"
+        i == WHITE && return "○"
+        i == BLACK && return "×"
         i == BLANK && return "_"
         throw("")
     end
-    "$(s[1]) $(s[2]) $(s[3])\n$(s[4]) $(s[5]) $(s[6])\n$(s[7]) $(s[8]) $(s[9])"
+    p = ttt.player == WHITE ? "○" : "×"
+    "player: $p\n$(s[1]) $(s[2]) $(s[3])\n$(s[4]) $(s[5]) $(s[6])\n$(s[7]) $(s[8]) $(s[9])"
 end
 
 function getactions(ttt::TicTacToe)
@@ -33,18 +41,20 @@ function reward(ttt::TicTacToe)
     for p in pats
         ttt.board[p[1]] == BLANK && continue
         if ttt.board[p[1]] == ttt.board[p[2]] == ttt.board[p[3]]
-            return ttt.board[p[1]] == ttt.player ? 1 : -1
+            @assert ttt.board[p[1]] != ttt.player
+            return -1.0
         end
     end
-    0
+    ttt.count < 9 && return -100.0
+    0.0
 end
 
 function move(ttt::TicTacToe, act::Int)
     @assert ttt.board[act] == BLANK
     board = copy(ttt.board)
     board[act] = ttt.player
-    p = ttt.player == WHITE ? BLACK : WHITE
-    TicTacToe(p, board)
+    player = ttt.player == WHITE ? BLACK : WHITE
+    TicTacToe(player, board, ttt.count+1)
 end
 
 
@@ -54,13 +64,10 @@ end
 
 function NN()
     T = Float32
-    embeds = Uniform(-0.001,0.001)(T,10,3)
-    h = lookup(Node(name="x"))
-    h = Linear(T,50,10)(h)
-    embeds = Normal(0,0.01)(T,10,3)
+    embeds = zerograd(Uniform(-0.001,0.001)(T,10,3))
     h = lookup(Node(embeds), Node(name="x"))
     h = Linear(T,90,90)(h)
-    h = relu(h)
+    h = tanh(h)
     p = Linear(T,90,9)(h)
     v = Linear(T,90,1)(h)
     v = tanh(v)
@@ -69,5 +76,20 @@ end
 
 function (nn::NN)(ttt::TicTacToe)
     x = ttt.board
+    p = ttt.player
+    if p == BLACK
+        x = copy(x)
+        for i = 1:length(x)
+            x[i] == BLANK && continue
+            x[i] = x[i] == WHITE ? BLACK : WHITE
+        end
+    end
     nn.g(Var(x))
+end
+
+export test_ttt
+function test_ttt()
+    ttt = TicTacToe()
+    nn = NN()
+    train(ttt, nn)
 end

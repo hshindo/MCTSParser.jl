@@ -2,9 +2,10 @@ module MCTSParser
 
 using Merlin
 using ProgressMeter
-using HDF5
 
-include("gametree.jl")
-include("tictactoe.jl")
+include("game.jl")
+include("players.jl")
+include("mcts.jl")
+include("game/tictactoe.jl")
 
 end
